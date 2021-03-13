@@ -11,10 +11,11 @@
 # a_0 = 20220
 # lambda = 0.01
 
+library(R.utils)
 
 lambda <- 0.01
 lambda_function <- function(t) {
-    if(0 <= t <= 6){
+    if(0 <= t && t <= 6){
         return( 0.01 * t^4 + 0.03 * t^3 + 0.05 * t^2 - 0.25 * t + 20) 
     }
     else{
@@ -38,13 +39,12 @@ t <- 0 # variaabila de timp t
 n1 <- 0 # nr de clienti de la serverul 1
 n2 <- 0 # nr de clienti de la serverul 2
 
-ss <- tuple(n1, n2) # starea sistemului
+SS <- c(n1, n2) # starea sistemului
 
 N_A<- 0 # nr sosiri pana la momentul t
 N_D <- 0 # nr de plecari pana la momentul t
 
 # Generare T_s
-
 generare_T_s <- function(s, lambda){
     
     T_s <- 0
@@ -84,7 +84,7 @@ generare_gamma <- function(lambda) {
 }
 
 cazul_1 <- function(t_A){ # vede variabilele din afara ???
-    # t_A = min(t_A, t_1, t_2)
+    # caz: t_A = min(t_A, t_1, t_2)
     t <- t_A
     N_A <- N_A + 1
     n1 <- n1 + 1
@@ -98,15 +98,16 @@ cazul_1 <- function(t_A){ # vede variabilele din afara ???
     }
     
     # Output cazul 1)
-    A_1 <- insert(A_1, ats=N_A, values=t)
+    A_1_temp <- A_1
+    A_1 <- append(A_1_temp, t, after = N_A)
 }
 
-cazul_1()
+cazul_1(20)
 
 # 3: CAZUL 2
 
 cazul_2 <- function (){
-    # t_1 < t_A && t_1<= t_2
+    # caz: t_1 < t_A && t_1<= t_2
     t <- t_1
     n1 <- n1 - 1
     n2 <- n2 + 1
@@ -125,7 +126,8 @@ cazul_2 <- function (){
     
     # Output cazul 2)
     N_temp <- N_A - n1
-    A_2 <- insert(A_2, ats=N_temp, values=t)
+    A_2_temp <- A_2
+    A_2 <- append(A_2_temp, t, after = N_temp)
 }
 
 cazul_2()
@@ -146,10 +148,18 @@ cazul_3 <- function() {
         t_2 <- t + Y_2
     }
     
-    D <- insert(D, ats=N_D, value=t)
+    # Output cazul 3)
+    D_temp <- D
+    D <- append(D_temp, t, after=N_D)
 }
 
 cazul_3()
+
+# ------------------------------------------------------------------------------
+
+main <- function() {
+    
+}
 
 # ------------------------------------------------------------------------------
 
