@@ -27,7 +27,9 @@ lambda_function <- function(t) {
 
 # VARIABILE DE OUTPUT
 
-A_1 <- c()
+A_1 <- c() # momentul sosirii clientului la serverul 1
+A_2 <- c() # momentul sosirii clientului la serverul 2
+D <- c() # momentul plecarii clientului din sistem
 
 # 1) INITIALIZARE
 
@@ -73,7 +75,7 @@ t_A <- T_0
 t_1 <- Inf
 t_2 <- Inf
 
-# 2) CAZUL 1
+# 2: CAZUL 1
 
 generare_gamma <- function(lambda) {
     U <- runif(1)
@@ -81,25 +83,74 @@ generare_gamma <- function(lambda) {
     return ((-1 / scale) * sum(log(U)))
 }
 
-cazul_1 <- function(){ # vede variabilele din afara ???
-    t_A = min(t_A, t_1, t_2)
+cazul_1 <- function(t_A){ # vede variabilele din afara ???
+    # t_A = min(t_A, t_1, t_2)
     t <- t_A
-    N_A = N_A + 1
-    n1 = n1 + 1
+    N_A <- N_A + 1
+    n1 <- n1 + 1
     
     T_t <- generare_T_s(t, lambda)
-    t_A = T_t
+    t_A <- T_t
     
     if(n1 == 1){
-        Y_1 = generare_gamma(lambda)
-        t_1 = t + Y_1
+        Y_1 <- generare_gamma(lambda)
+        t_1 <- t + Y_1
     }
     
     # Output cazul 1)
-    A_1 <- c(A_1, t)
+    A_1 <- insert(A_1, ats=N_A, values=t)
 }
 
 cazul_1()
+
+# 3: CAZUL 2
+
+cazul_2 <- function (){
+    # t_1 < t_A && t_1<= t_2
+    t <- t_1
+    n1 <- n1 - 1
+    n2 <- n2 + 1
+    
+    if(n1 == 0){
+        t_1 <- Inf
+    } else{
+        Y_1 <- generare_gamma(lambda)
+        t_1 <- t + Y_1
+    }
+    
+    if(n2 == 1){
+        Y_2 <- generare_gamma(lambda)
+        t_2 <- t + Y_2
+    }
+    
+    # Output cazul 2)
+    N_temp <- N_A - n1
+    A_2 <- insert(A_2, ats=N_temp, values=t)
+}
+
+cazul_2()
+
+# 4: CAZUL 3
+
+cazul_3 <- function() {
+    # t_2 < t_A && t_2 < t_1
+    t <- t_2
+    N_D <- N_D + 1
+    n2 <- n2 - 1
+    if(n2 == 0) {
+        t_2 <- Inf
+    }
+    
+    if(n2 == 1) {
+        Y_2 <- generare_gamma(lambda)
+        t_2 <- t + Y_2
+    }
+    
+    D <- insert(D, ats=N_D, value=t)
+}
+
+cazul_3()
+
 # ------------------------------------------------------------------------------
 
 library(shiny)
