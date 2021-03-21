@@ -75,6 +75,8 @@ t_A <- T_0
 t_1 <- Inf
 t_2 <- Inf
 
+#-------------------------------------------------------------------------------
+
 # 2: CAZUL 1
 
 generare_gamma <- function(lambda) {
@@ -83,12 +85,13 @@ generare_gamma <- function(lambda) {
     return ((-1 / scale) * sum(log(U)))
 }
 
-cazul_1 <- function(t_A){ # vede variabilele din afara ???
+cazul_1 <- function(){ # vede variabilele din afara ???
     # caz: t_A = min(t_A, t_1, t_2)
+
     t <- t_A
     N_A <- N_A + 1
     n1 <- n1 + 1
-    
+
     T_t <- generare_T_s(t, lambda)
     t_A <- T_t
     
@@ -102,7 +105,7 @@ cazul_1 <- function(t_A){ # vede variabilele din afara ???
     A_1 <- append(A_1_temp, t, after = N_A)
 }
 
-cazul_1(20)
+cazul_1()
 
 # 3: CAZUL 2
 
@@ -158,8 +161,36 @@ cazul_3()
 # ------------------------------------------------------------------------------
 
 main <- function() {
-    
+    while(N_D < 11){
+        if(t_A == min(t_A, t_1, t_2)){
+            print("Intra cazul 1")
+            cazul_1();
+            print(t_A)
+            print(t_1)
+            print(t_2)
+            print(A_1)
+        }
+        else if(t_1 < t_A && t_1 <= t_2){
+            print("Intra cazul 2")
+            cazul_2();
+            print(t_A)
+            print(t_1)
+            print(t_2)
+            print(A_2)
+        }
+        else if(t2 < t_A && t_2 < t1){
+            print("Intra cazul 3")
+            cazul_3();
+            print( t_A)
+            print(t_1)
+            print(t_2)
+            print(A_1)
+            print(A_2)
+        }
+    }
 }
+
+main()
 
 # ------------------------------------------------------------------------------
 
