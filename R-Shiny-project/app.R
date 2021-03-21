@@ -71,9 +71,9 @@ generare_T_s <- function(s, lambda){
 }
 
 T_0 <- generare_T_s(0, lambda)
-t_A <- T_0
-t_1 <- Inf
-t_2 <- Inf
+t_A <<- T_0
+t_1 <<- Inf
+t_2 <<- Inf
 
 #-------------------------------------------------------------------------------
 
@@ -88,104 +88,113 @@ generare_gamma <- function(lambda) {
 cazul_1 <- function(){ # vede variabilele din afara ???
     # caz: t_A = min(t_A, t_1, t_2)
 
-    t <- t_A
-    N_A <- N_A + 1
-    n1 <- n1 + 1
-
-    T_t <- generare_T_s(t, lambda)
-    t_A <- T_t
+    t <<- t_A
+    N_A <<- N_A + 1
+    n1 <<- n1 + 1
+    
+    T_t <<- generare_T_s(t, lambda)
+    t_A <<- T_t
     
     if(n1 == 1){
         Y_1 <- generare_gamma(lambda)
-        t_1 <- t + Y_1
+        print(c("Y_1 generat la caz1:",Y_1))
+        t_1 <<- t + Y_1
     }
     
     # Output cazul 1)
     A_1_temp <- A_1
-    A_1 <- append(A_1_temp, t, after = N_A)
+    A_1 <<-  append(A_1_temp, t, after = N_A)
 }
 
-cazul_1()
+
 
 # 3: CAZUL 2
 
 cazul_2 <- function (){
     # caz: t_1 < t_A && t_1<= t_2
-    t <- t_1
-    n1 <- n1 - 1
-    n2 <- n2 + 1
+    t <<- t_1
+    n1 <<- n1 - 1
+    n2 <<- n2 + 1
     
     if(n1 == 0){
-        t_1 <- Inf
+        t_1 <<- Inf
     } else{
-        Y_1 <- generare_gamma(lambda)
-        t_1 <- t + Y_1
+        Y_1 <<- generare_gamma(lambda)
+        print(c("Y_1 generat la caz2:",Y_1))
+        t_1 <<- t + Y_1
     }
     
     if(n2 == 1){
-        Y_2 <- generare_gamma(lambda)
-        t_2 <- t + Y_2
+        Y_2 <<- generare_gamma(lambda)
+        
+        print(c("Y_2 generat la caz2:",Y_2))
+        t_2 <<- t + Y_2
     }
     
     # Output cazul 2)
     N_temp <- N_A - n1
     A_2_temp <- A_2
-    A_2 <- append(A_2_temp, t, after = N_temp)
+    if(N_temp <= length(A_2))
+        A_2[N_temp] <<- t
+    else
+        print("N_temp > length (A_2)")
+        A_2 <<- c(A_2, t)
 }
 
-cazul_2()
+
 
 # 4: CAZUL 3
 
 cazul_3 <- function() {
     # t_2 < t_A && t_2 < t_1
-    t <- t_2
-    N_D <- N_D + 1
-    n2 <- n2 - 1
+    t <<- t_2
+    N_D <<- N_D + 1
+    n2 <<- n2 - 1
     if(n2 == 0) {
-        t_2 <- Inf
+        t_2 <<- Inf
     }
     
     if(n2 == 1) {
         Y_2 <- generare_gamma(lambda)
-        t_2 <- t + Y_2
+        
+        print(c("Y_2 generat la caz3:",Y_2))
+        t_2 <<- t + Y_2
     }
     
     # Output cazul 3)
     D_temp <- D
-    D <- append(D_temp, t, after=N_D)
+    D <<- append(D_temp, t, after=N_D)
 }
-
-cazul_3()
 
 # ------------------------------------------------------------------------------
 
 main <- function() {
-    while(N_D < 11){
+    while(N_D <= 10){
+        message(c("N_D: ",N_D))
+        
+        print(c("t_A=",t_A))
+        print(c("t_1=",t_1))
+        print(c("t_2=",t_2))
+        print(c("A_1=",A_1))
+        print(c("A_2=",A_2))
+        
         if(t_A == min(t_A, t_1, t_2)){
             print("Intra cazul 1")
-            cazul_1();
-            print(t_A)
-            print(t_1)
-            print(t_2)
-            print(A_1)
+            if(N_A <= 10){
+                cazul_1()
+            }
+            else{
+                t_A <- Inf
+                print("Max clienti. Astept procesarea.")
+            }
         }
         else if(t_1 < t_A && t_1 <= t_2){
             print("Intra cazul 2")
-            cazul_2();
-            print(t_A)
-            print(t_1)
-            print(t_2)
-            print(A_2)
+            cazul_2()
         }
-        else if(t2 < t_A && t_2 < t1){
+        else if(t_2 < t_A && t_2 < t_1){
             print("Intra cazul 3")
-            cazul_3();
-            print( t_A)
-            print(t_1)
-            print(t_2)
-            print(A_1)
-            print(A_2)
+            cazul_3()
         }
     }
 }
@@ -233,4 +242,4 @@ server <- function(input, output) {
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server)
+#shinyApp(ui = ui, server = server)
