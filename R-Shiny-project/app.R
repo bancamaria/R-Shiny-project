@@ -185,6 +185,7 @@ main <- function() {
             }
             else{
                 t_A <- Inf
+                
                 print("Max clienti. Astept procesarea.")
             }
         }
