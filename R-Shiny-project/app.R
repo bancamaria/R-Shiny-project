@@ -70,6 +70,8 @@ generare_T_s <- function(s, lambda){
     return(T_s)
 }
 
+
+#Generare initiala
 T_0 <- generare_T_s(0, lambda)
 t_A <<- T_0
 t_1 <<- Inf
@@ -168,24 +170,33 @@ cazul_3 <- function() {
 
 # ------------------------------------------------------------------------------
 
-main <- function() {
-    while(N_D <= 10){
+simulare_zi <- function() {
+    
+    #TODO: de fiecare data cand apelam simulare_zi, ptc folosim variabile globale
+    #Avem nevoie sa dam reset
+    #Initial, consideram ca centrul isi incepe activitatea la timpul 0.
+    #Consideram ca fiecare variabila de timp reprezinta numarul de secunde 
+    #De la deschiderea centrului.
+    #Astfel, este nevoie sa ne oprim atunci cand t depaseste 3 * 3600 = 43200
+    while(TRUE){
         message(c("N_D: ",N_D))
         
         print(c("t_A=",t_A))
         print(c("t_1=",t_1))
         print(c("t_2=",t_2))
-        print(c("A_1=",A_1))
-        print(c("A_2=",A_2))
         
+        if(t >= 3 * 3600 && n1 == 0 && n2 == 0)
+            #return metrics
+            break
         if(t_A == min(t_A, t_1, t_2)){
             print("Intra cazul 1")
-            if(N_A <= 10){
+            #Decidem sa nu mai primim clienti  dupa programul de munca, 
+            #Dar sa servim clientii ramasi.
+            if(t < 3 * 3600){
                 cazul_1()
             }
             else{
                 t_A <- Inf
-                
                 print("Max clienti. Astept procesarea.")
             }
         }
@@ -198,9 +209,24 @@ main <- function() {
             cazul_3()
         }
     }
+    print(c("We're closed. Fuck off.Last t:", t))
 }
 
-main()
+#Simulare_zi va fi metoda apelata pentru a obtine metricele aferente unei 
+#zile lucratoare
+#for i in 1:7{
+    #In fiecare zi din perioada specificata,e.g. 1:7 o saptamana
+    #Rulam 10^6 scenarii posibile
+#    for sim in 1:1e6
+        #metrics = simulare_zi()
+        
+    #Pentru fiecare dintre cele 10^6 valori ale metricelor, 
+    #Calculam o valoare medie orientativa pentru ziua respectiva. 
+    #Adaugam in grafice
+    #pe Ox numarul zilei si pe Oy una din metrice. 
+    #Cate un grafic per metrica. 
+#}
+simulare_zi()
 
 # ------------------------------------------------------------------------------
 
