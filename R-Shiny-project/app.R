@@ -32,10 +32,17 @@ A_1 <- c() # momentul sosirii clientului la serverul 1
 A_2 <- c() # momentul sosirii clientului la serverul 2
 D <- c() # momentul plecarii clientului din sistem
 
-# 1) INITIALIZARE
+# 1)CONSTANTE DE MEDIU
+
+N_prog <- 3 # numarul de ore in care centrul primeste clienti
+N_extra <- 1 # numarul de ore peste program  
+N_max2 <- 4 #numarul maxim de scaune in sala de asteptare la serverul 2.
+N_max1 <- 4 #numarul maxim de scaune in sala de asteptare la serverul 1. Dimensiuna maxima a cozii 
+N_dif <- 1 #numarul maxim de scaune libere care ar putea fi ocupate de clienti
+            #serviti de la serverul 1 si cand serverul 2 este plin
+# 2) INITIALIZARE
 
 t <- 0 # variaabila de timp t
-
 n1 <- 0 # nr de clienti de la serverul 1
 n2 <- 0 # nr de clienti de la serverul 2
 
@@ -43,6 +50,7 @@ SS <- c(n1, n2) # starea sistemului
 
 N_A<- 0 # nr sosiri pana la momentul t
 N_D <- 0 # nr de plecari pana la momentul t
+N_loss <- 0 #nr de clienti care au parasit sistemul fara sa fie serviti
 
 # Generare T_s
 generare_T_s <- function(s, lambda){
@@ -87,25 +95,36 @@ generare_gamma <- function(lambda) {
     return ((-1 / scale) * sum(log(U)))
 }
 
-cazul_1 <- function(){ # vede variabilele din afara ???
+cazul_1 <- function(){ # vede variabilele din afara YEP
     # caz: t_A = min(t_A, t_1, t_2)
 
     t <<- t_A
-    N_A <<- N_A + 1
-    n1 <<- n1 + 1
-    
     T_t <<- generare_T_s(t, lambda)
     t_A <<- T_t
     
-    if(n1 == 1){
-        Y_1 <- generare_gamma(lambda)
-        print(c("Y_1 generat la caz1:",Y_1))
-        t_1 <<- t + Y_1
+    #Daca persoanele aflate in asteptare la serverul 2 ocupa un nr max de scaune
+    # trebuie sa lasam libere scaune in caz ca serverul 1 serveste mai repede
+    # ca sa nu riscam ca mai multi oameni care vin din serverul 1 la serverul 2
+    # sa "ramana fara scaun"
+    if(n1 >= N_max1 || (n1 > 1 && n2 >= N_max2 - N_dif)){
+        #Daca totusi se intampla, pierdem 
+        N_loss <- N_loss + 1
+        message("Am pierdut un client la caz1")
+        message(c("n1=",n1))
+        message(c("n2=",n2))
+        
+    }else{
+        n1 <<- n1 + 1
+        if(n1 == 1){
+            Y_1 <- generare_gamma(lambda)
+            print(c("Y_1 generat la caz1:",Y_1))
+            t_1 <<- t + Y_1
+        }
+        
+        # Output cazul 1)
+        A_1_temp <- A_1
+        A_1 <<-  append(A_1_temp, t, after = N_A)
     }
-    
-    # Output cazul 1)
-    A_1_temp <- A_1
-    A_1 <<-  append(A_1_temp, t, after = N_A)
 }
 
 
@@ -156,7 +175,7 @@ cazul_3 <- function() {
         t_2 <<- Inf
     }
     
-    if(n2 == 1) {
+    if(n2 > 0) {
         Y_2 <- generare_gamma(lambda)
         
         print(c("Y_2 generat la caz3:",Y_2))
@@ -167,45 +186,87 @@ cazul_3 <- function() {
     D_temp <- D
     D <<- append(D_temp, t, after=N_D)
 }
-
+#-------------------------------------------------------------------------------
+resetare_variabile <- function(){
+    #O noua zi, resetam masura de timp
+    t <<- 0
+    #O noua zi, niciun client de procesat, asteptam clientii
+    n1 <<- 0
+    n2 <<- 0
+    
+    #Generam T_0 prin care setam momentul de timp al sosirii primului client
+    T_0 <- generare_T_s(0, lambda)
+    
+    t_A <<- T_0
+    t_1 <<- Inf
+    t_2 <<- Inf
+    
+    
+    A_1 <<- c()
+    A_2 <- c() 
+    D <<- c() 
+    N_A <<- 0
+    N_D <<- 0
+    
+    
+}
 # ------------------------------------------------------------------------------
 
-simulare_zi <- function() {
+simulare_zi <- function(dummy = 1) {
     
-    #TODO: de fiecare data cand apelam simulare_zi, ptc folosim variabile globale
+    #De fiecare data cand apelam simulare_zi, ptc folosim variabile globale
     #Avem nevoie sa dam reset
+    resetare_variabile()
     #Initial, consideram ca centrul isi incepe activitatea la timpul 0.
     #Consideram ca fiecare variabila de timp reprezinta numarul de secunde 
     #De la deschiderea centrului.
-    #Astfel, este nevoie sa ne oprim atunci cand t depaseste 3 * 3600 = 43200
+    #Astfel, este nevoie sa ne oprim atunci cand t depaseste N_prog * 3600 = 43200
     while(TRUE){
-        message(c("N_D: ",N_D))
+        #message(c("N_D: ",N_D))
         
         print(c("t_A=",t_A))
         print(c("t_1=",t_1))
         print(c("t_2=",t_2))
+        print(c("n1=",n1))
+        print(c("n2=",n2))
         
-        if(t >= 3 * 3600 && n1 == 0 && n2 == 0)
-            #return metrics
+        #Centrul se va inchide daca una din cele 2 conditii este indeplinita:
+        #1. Fie au trecut si numarul de ore extra pe care le-am alocat servirii
+        #2. Fie programul de primire s-a terminat si am reusit sa servim toti clientii
+        if(t >= (N_prog + N_extra) * 3600 || 
+           t >= N_prog * 3600 && n1 == 0 && n2 == 0){
+            #TODO:
+            #   return metrics -> N_loss, length(A_2) numar doze,
+            print(c("Ramasi in n1", n1))
+            print(c("Ramasi in n2", n2))
+            print(c("t_A=",t_A))
+            print(c("t_1=",t_1))
+            print(c("t_2=",t_2))
+            print(c("Doze folosite=",length(A_2)))
+            
+
             break
+        }
         if(t_A == min(t_A, t_1, t_2)){
             print("Intra cazul 1")
-            #Decidem sa nu mai primim clienti  dupa programul de munca, 
-            #Dar sa servim clientii ramasi.
-            if(t < 3 * 3600){
+            #Primim clientii doar daca se indeplinesc simultan:
+            #1. Timpul curent nu a depasit programul de munca
+            #2. Coada serverului 2 nu este la capacitate maxima
+            #3. Coada serverului 1 nu este la capacitate maxima
+            if(t < N_prog * 3600){
                 cazul_1()
             }
             else{
                 t_A <- Inf
-                print("Max clienti. Astept procesarea.")
+                #print("Au trecut orele de primire clienti. Overtime.")
             }
         }
         else if(t_1 < t_A && t_1 <= t_2){
-            print("Intra cazul 2")
+            #print("Intra cazul 2")
             cazul_2()
         }
         else if(t_2 < t_A && t_2 < t_1){
-            print("Intra cazul 3")
+            #print("Intra cazul 3")
             cazul_3()
         }
     }
@@ -226,7 +287,8 @@ simulare_zi <- function() {
     #pe Ox numarul zilei si pe Oy una din metrice. 
     #Cate un grafic per metrica. 
 #}
-simulare_zi()
+#Note: am incercat cu 100 simulari si merge foarte decent. 
+sapply(1:1, simulare_zi)
 
 # ------------------------------------------------------------------------------
 
