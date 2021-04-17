@@ -33,13 +33,16 @@ A_2 <- c() # momentul sosirii clientului la serverul 2
 D <- c() # momentul plecarii clientului din sistem
 
 # 1)CONSTANTE DE MEDIU
-
+#A_1[i] - t > rabdarea -> LEAVE
+#Cum accesam i?
 N_prog <- 3 # numarul de ore in care centrul primeste clienti
 N_extra <- 1 # numarul de ore peste program  
-N_max2 <- 4 #numarul maxim de scaune in sala de asteptare la serverul 2.
+N_max2 <- 5 #numarul maxim de scaune in sala de asteptare la serverul 2.
 N_max1 <- 4 #numarul maxim de scaune in sala de asteptare la serverul 1. Dimensiuna maxima a cozii 
 N_dif <- 1 #numarul maxim de scaune libere care ar putea fi ocupate de clienti
             #serviti de la serverul 1 si cand serverul 2 este plin
+N_rabdare <- 5 * 60  #minute dupa care un client paraseste serverul - isi pierde rabdarea
+                    #TODO: RBinom()
 # 2) INITIALIZARE
 
 t <- 0 # variaabila de timp t
@@ -51,6 +54,14 @@ SS <- c(n1, n2) # starea sistemului
 N_A<- 0 # nr sosiri pana la momentul t
 N_D <- 0 # nr de plecari pana la momentul t
 N_loss <- 0 #nr de clienti care au parasit sistemul fara sa fie serviti
+infoServ <- matrix(nrow=2, ncol=6) #vector ce va retine informatiile generate in urma unei simulari 
+
+#c[i,1] -> timpul minim de asteptare la serverul i
+#c[i,2] -> timpul maxim de asteptare la serverul i
+#c[i,3] -> timpul mediu de asteptare la serverul i
+#c[i,4] -> nr de clienti pierduti la serverul i
+#c[1,5] == c[2,5] == -> N_D Numarul mediu de clienti serviti
+#c[1,6] == c[2,6] -> primul moment de timp la care se pierde un client 
 
 # Generare T_s
 generare_T_s <- function(s, lambda){
@@ -107,9 +118,11 @@ cazul_1 <- function(){ # vede variabilele din afara YEP
     # ca sa nu riscam ca mai multi oameni care vin din serverul 1 la serverul 2
     # sa "ramana fara scaun"
     if(n1 >= N_max1 || (n1 > 1 && n2 >= N_max2 - N_dif)){
-        #Daca totusi se intampla, pierdem 
+        #Daca totusi se intampla, pierdem
+        #ASK_COJO : Unde il punem?
         N_loss <- N_loss + 1
-        message("Am pierdut un client la caz1")
+        
+        message("Client respins la caz1")
         message(c("n1=",n1))
         message(c("n2=",n2))
         
@@ -117,13 +130,18 @@ cazul_1 <- function(){ # vede variabilele din afara YEP
         n1 <<- n1 + 1
         if(n1 == 1){
             Y_1 <- generare_gamma(lambda)
+            if( Y_1 < infoServ[1,1]){
+                infoServ[1,1] = Y_1
+            }else if(Y_1 > infoServ[1,2]){
+                infoServ[1,2] = Y_1
+            }
             print(c("Y_1 generat la caz1:",Y_1))
             t_1 <<- t + Y_1
         }
         
         # Output cazul 1)
         A_1_temp <- A_1
-        A_1 <<-  append(A_1_temp, t, after = N_A)
+        A_1 <<-  c(A_1, t)
     }
 }
 
@@ -141,13 +159,26 @@ cazul_2 <- function (){
         t_1 <<- Inf
     } else{
         Y_1 <<- generare_gamma(lambda)
+        if( Y_1 < infoServ[1,1]){
+            infoServ[1,1] = Y_1
+        }else if(Y_1 > infoServ[1,2]){
+            infoServ[1,2] = Y_1
+        }
+        #Actualizam timpul mediu  petrecut la serverul 1
+        infoServ[1,3] <- infoServ[1,3] + Y_1
         print(c("Y_1 generat la caz2:",Y_1))
         t_1 <<- t + Y_1
     }
     
     if(n2 == 1){
         Y_2 <<- generare_gamma(lambda)
-        
+        if( Y_2 < infoServ[2,1]){
+            infoServ[2, 1] = Y_2
+        }else if(Y_2 > infoServ[2,2]){
+            infoServ[2, 2] = Y_2
+        }
+        #Actualizam timpul mediu  petrecut la serverul 2
+        #infoServ[2,3] <- infoServ[2,3] + Y_2
         print(c("Y_2 generat la caz2:",Y_2))
         t_2 <<- t + Y_2
     }
@@ -177,7 +208,15 @@ cazul_3 <- function() {
     
     if(n2 > 0) {
         Y_2 <- generare_gamma(lambda)
+        #Actualizam timpul minim, maxim  petrecut la serverul 2
+        if( Y_2 < infoServ[2,1]){
+            infoServ[2,1] = Y_2
+        }else if(Y_2 > infoServ[2,2]){
+            infoServ[2,2] = Y_2
+        }
         
+        #Actualizam timpul mediu  petrecut la serverul 2
+        infoServ[2,3] <- infoServ[2,3] + Y_2
         print(c("Y_2 generat la caz3:",Y_2))
         t_2 <<- t + Y_2
     }
@@ -207,7 +246,29 @@ resetare_variabile <- function(){
     D <<- c() 
     N_A <<- 0
     N_D <<- 0
+    #Timp minim petrecut
+    infoServ[1,1] <<- Inf
+    infoServ[2,1] <<- Inf
     
+    #Timp maxim petrecut
+    infoServ[1,2] <<- 0
+    infoServ[2,2] <<- 0
+    
+    #Timp petrecut 
+    infoServ[1,3] <<- 0
+    infoServ[2,3] <<- 0
+    
+    #N clienti pierduti
+    infoServ[1,4] <<- 0
+    infoServ[2,4] <<- 0
+    
+    #N clienti serviti
+    infoServ[1,5] <<- 0
+    infoServ[2,5] <<- 0
+    
+    #Primul mom de timp la care se pierde un client
+    infoServ[1,6] <<- 0
+    infoServ[2,6] <<- 0
     
 }
 # ------------------------------------------------------------------------------
@@ -221,6 +282,7 @@ simulare_zi <- function(dummy = 1) {
     #Consideram ca fiecare variabila de timp reprezinta numarul de secunde 
     #De la deschiderea centrului.
     #Astfel, este nevoie sa ne oprim atunci cand t depaseste N_prog * 3600 = 43200
+    
     while(TRUE){
         #message(c("N_D: ",N_D))
         
@@ -244,7 +306,10 @@ simulare_zi <- function(dummy = 1) {
             print(c("t_2=",t_2))
             print(c("Doze folosite=",length(A_2)))
             
-
+            #Media timpului de astepare pentru cele 2 servere
+            infoServ[1,3] <- infoServ[1,3] / (length(A_1) - infoServ[1,4])
+            infoServ[2,3] <- infoServ[2,3] / length(A_2)
+            
             break
         }
         if(t_A == min(t_A, t_1, t_2)){
@@ -287,9 +352,12 @@ simulare_zi <- function(dummy = 1) {
     #pe Ox numarul zilei si pe Oy una din metrice. 
     #Cate un grafic per metrica. 
 #}
-#Note: am incercat cu 100 simulari si merge foarte decent. 
-sapply(1:1, simulare_zi)
 
+#-------------------------------------------------------------------------------
+simulare_zi()
+main <- function(){
+    
+}
 # ------------------------------------------------------------------------------
 
 library(shiny)
