@@ -431,6 +431,12 @@ simulare_zi <- function(dummy = 1) {
     }
     print(c("We're closed. Fuck off.Last t:", t))
 }
+#castig[3,1] 
+#Rulam simularea pentru 7 zile ->castig normal aka castig[1,1]
+#Rulam simularea pentru 7 zile, dar N_prog ++ ->castig[2,1]
+#Rulam simularea pentru 7 zile, dar N_prog -- ->castig[3,1]
+#castig[2,1] - castig[1,1] pentur N_prog ++
+#castig[3,1] - castig[1,1] pentur N_prog --
 
 #Simulare_zi va fi metoda apelata pentru a obtine metricele aferente unei 
 #zile lucratoare
