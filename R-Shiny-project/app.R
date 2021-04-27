@@ -143,9 +143,9 @@ cazul_1 <- function(){ # vede variabilele din afara
         if(n1 == 1){
             Y_1 <- generare_gamma(lambda)
             if( Y_1 < infoServ[1,1]){
-                infoServ[1,1] = Y_1
+                infoServ[1,1] <<- Y_1
             }else if(Y_1 > infoServ[1,2]){
-                infoServ[1,2] = Y_1
+                infoServ[1,2] <<- Y_1
             }
             print(c("Y_1 generat la caz1:",Y_1))
             infoServ[1,3] <<- infoServ[1,3] + Y_1
@@ -168,9 +168,7 @@ cazul_2 <- function (){
     if(n1 > 0){
         n1 <<- n1 - 1
     }
-    #Eliminam prima persoana din coada, deoarece este uramtoarea ce va fi servita
-    curent <<- q1[1]
-    q1 <<- q1[-1: -2, ]
+    
     #Adaugam la numarul total de clienti serviti de catre serverul 1
     infoServ[1,5] <<- infoServ[1,5] + 1
     #Daca nu este niciun client in asteptare la serverul 2, trimitem noul client 
@@ -191,12 +189,12 @@ cazul_2 <- function (){
     if(n2 == 1){
         Y_2 <<- generare_gamma(lambda)
         if( Y_2 < infoServ[2,1]){
-            infoServ[2, 1] = Y_2
+            infoServ[2, 1] <<- Y_2
         }else if(Y_2 > infoServ[2,2]){
-            infoServ[2, 2] = Y_2
+            infoServ[2, 2] <<- Y_2
         }
         #Actualizam timpul mediu  petrecut la serverul 2
-        infoServ[2,3] <- infoServ[2,3] + Y_2
+        infoServ[2,3] <<- infoServ[2,3] + Y_2
         print(c("Y_2 generat la caz2:",Y_2))
         t_2 <<- t + Y_2
     }
@@ -205,15 +203,23 @@ cazul_2 <- function (){
         t_1 <<- Inf
     } else{
         Y_1 <<- generare_gamma(lambda)
-        if( Y_1 + t - curent[1] < infoServ[1,1]){
-            infoServ[1,1] = Y_1 + t - curent[1]
-        }else if(Y_1 + t - curent[1]> infoServ[1,2]){
-            infoServ[1,2] = Y_1 + t - curent[1]
-        }
-        #Actualizam la timpul total de servire server 1
-        infoServ[1,3] <- infoServ[1,3] + Y_1 + t - curent[1]
         print(c("Y_1 generat la caz2:",Y_1))
         t_1 <<- t + Y_1
+        
+        #Eliminam prima persoana din coada, deoarece este uramtoarea ce va fi servita,
+        #Daca exista perosoane in coada
+        if( length(q1[,1]) > 0){
+            curent <- q1[1, ]
+            q1 <<- q1[-1: -2, ]
+            if( Y_1 + t - curent[1] < infoServ[1, 1]){
+                infoServ[1,1] <<- Y_1 + t - curent[1]
+            }else if(Y_1 + t - curent[1]> infoServ[1,2]){
+                infoServ[1,2] <<- Y_1 + t - curent[1]
+            }
+            #Actualizam la timpul total de servire server 1
+            infoServ[1,3] <<- infoServ[1,3] + Y_1 + t - curent[1]
+        }
+        
     }
     
     
@@ -241,27 +247,31 @@ cazul_3 <- function() {
     if(n2 > 0 ){
         n2 <<- n2 - 1
     }
-    #Adaugam timpul petrecut de clientul din coada la timpii de aste
-    curent <- q2[1]
-    #Eliminam din coada clientul servit.
-    q2 <<- q2[-1:-2,]
+    
     if(n2 == 0) {
         t_2 <<- Inf
-    }
-    
-    if(n2 > 0) {
+    }else {
         Y_2 <- generare_gamma(lambda)
-        #Actualizam timpul minim, maxim  petrecut la serverul 2
-        if( Y_2 + t - curent[1]< infoServ[2,1]){
-            infoServ[2,1] = Y_2 + t - curent[1]
-        }else if(Y_2 > infoServ[2,2]){
-            infoServ[2,2] = Y_2 + t - curent[1]
-        }
-        
-        #Actualizam timpul mediu  petrecut la serverul 2
-        infoServ[2, 3] <- infoServ[2,3] + Y_2 + t - curent[1]
         print(c("Y_2 generat la caz3:",Y_2))
         t_2 <<- t + Y_2
+        
+        if(length(q2[, 1]) > 0){
+            #Adaugam timpul petrecut de clientul din coada la timpii de aste
+            curent <- q2[1, ]
+            #Eliminam din coada clientul servit.
+            q2 <<- q2[-1:-2,]
+            #Actualizam timpul minim, maxim  petrecut la serverul 2
+            if( Y_2 + t - curent[1]< infoServ[2,1]){
+                infoServ[2,1] <<- Y_2 + t - curent[1]
+            }else if(Y_2 > infoServ[2,2]){
+                infoServ[2,2] <<- Y_2 + t - curent[1]
+            }
+            #Actualizam timpul mediu  petrecut la serverul 2
+            infoServ[2, 3] <<- infoServ[2,3] + Y_2 + t - curent[1]
+            
+        }
+        
+        
     }
     
     # Output cazul 3)
@@ -350,11 +360,11 @@ simulare_zi <- function(dummy = 1) {
             print(c("t_A=",t_A))
             print(c("t_1=",t_1))
             print(c("t_2=",t_2))
-            print(c("Doze folosite=",length(A_2)))
+            print(c("Doze folosite=",N_D))
             
             #Media timpului de astepare pentru cele 2 servere
-            infoServ[1,3] <- infoServ[1,3] / infoServ[1,5]
-            infoServ[2,3] <- infoServ[2,3] / infoServ[2,5]
+            infoServ[1,3] <<- infoServ[1,3] / infoServ[1,5]
+            infoServ[2,3] <<- infoServ[2,3] / infoServ[2,5]
             
             break
         }
@@ -368,7 +378,7 @@ simulare_zi <- function(dummy = 1) {
                 cazul_1()
             }
             else{
-                t_A <- Inf
+                t_A <<- Inf
                 #print("Au trecut orele de primire clienti. Overtime.")
             }
         }
@@ -384,13 +394,16 @@ simulare_zi <- function(dummy = 1) {
         #care si-au pierdut rabdarea
         len_q1_inainte <- length(q1[,1])
         len_q2_inainte <- length(q2[,1])
+        print("Before:Q1 and Q2:")
+        print(q1)
+        print(q2)
         if(length(q1) > 0 ){
             if(infoServ[1,6] == 0){
                 q1_de_elim <- subset(q1, q1[, 1] + q1[, 2] <= t)
                 q1 <<- subset(q1, q1[, 1] + q1[, 2] > t)
                 
-                if(length(q1_de_elim) > 0){
-                    infoServ[1,6] = q1_de_elim[1, 1] + q1_de_elim[1, 2]
+                if(length(q1_de_elim[,1]) > 0){
+                    infoServ[1,6] <<- q1_de_elim[1, 1] + q1_de_elim[1, 2]
                 }
             }else{
                 q1 <<- subset(q1, q1[, 1] + q1[, 2] > t)
@@ -402,17 +415,19 @@ simulare_zi <- function(dummy = 1) {
                 q2_de_elim <- subset(q2, q2[, 1] + q2[, 2] <= t)
                 q2 <<- subset(q2, q2[, 1] + q2[, 2] > t)
                 
-                if(length(q2_de_elim) > 0){
-                    infoServ[2,6] = q2_de_elim[1, 1] + q2_de_elim[1, 2]
+                if(length(q2_de_elim[,1]) > 0){
+                    infoServ[2,6] <<- q2_de_elim[1, 1] + q2_de_elim[1, 2]
                 }
             }else{
                 q2 <<- subset(q2, q2[, 1] + q2[, 2] > t)
             }
            
         }
-        n1 <<- n1 + len_q1_inainte - length(q1[,1])
-        n2 <<- n2 + len_q2_inainte - length(q2[,1])
-        print("Q1 and Q2:")
+        n1 <<- n1 + length(q1[,1]) - len_q1_inainte
+        n2 <<- n2 + length(q2[,1]) - len_q2_inainte  
+        print(c(length(q1[,1]), len_q1_inainte))
+        print(c(length(q2[,2]), len_q2_inainte))
+        print("After:Q1 and Q2:")
         print(q1)
         print(q2)
         print(c("t_A=",t_A))
@@ -423,12 +438,18 @@ simulare_zi <- function(dummy = 1) {
         
         #Numarul de clienti pierduti per fiecare sever este diferenta dintre lungimea dinainte
         #de eliminare si lungimea curenta
-        if(len_q1_inainte > length(q1))
-            infoServ[1, 4] <<- infoServ[1, 4] + (len_q1_inainte - length(q1))
-        if(len_q2_inainte > length(q2))
-            infoServ[2, 4] <<- infoServ[2, 4] + (len_q2_inainte - length(q2))
+        if(len_q1_inainte > length(q1[,1])){
+            print("FATALITY:")
+            print(c(len_q1_inainte - length(q1[,1])))
+            print(infoServ[1,4])
+            infoServ[1, 4] <<- infoServ[1, 4] + (len_q1_inainte - length(q1[,1]))
+        }
+        if(len_q2_inainte > length(q2[,1]))
+            infoServ[2, 4] <<- infoServ[2, 4] + (len_q2_inainte - length(q2[,1]))
         
     }
+    print("Metrics:")
+    print(infoServ)
     print(c("We're closed. Fuck off.Last t:", t))
 }
 #castig[3,1] 
