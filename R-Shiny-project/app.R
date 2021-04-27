@@ -44,8 +44,8 @@ N_max2 <- 5 #numarul maxim de scaune in sala de asteptare la serverul 2.
 N_max1 <- 4 #numarul maxim de scaune in sala de asteptare la serverul 1. Dimensiuna maxima a cozii 
 N_dif <- 1 #numarul maxim de scaune libere care ar putea fi ocupate de clienti
             #serviti de la serverul 1 si cand serverul 2 este plin
-N_rabdare <- 2 * 60  #minute dupa care un client paraseste serverul - isi pierde rabdarea
-                    #TODO: RBinom()
+N_doze <- 100 #numarul de doze disponibile in fiecare zi. Profitul va reprezenta
+N_zile <- 2 #numarul de zile asupra caruia facem observarea
 # 2) INITIALIZARE
 
 t <- 0 # variaabila de timp t
@@ -147,7 +147,7 @@ cazul_1 <- function(){ # vede variabilele din afara
             }else if(Y_1 > infoServ[1,2]){
                 infoServ[1,2] <<- Y_1
             }
-            print(c("Y_1 generat la caz1:",Y_1))
+            #print(c("Y_1 generat la caz1:",Y_1))
             infoServ[1,3] <<- infoServ[1,3] + Y_1
             t_1 <<- t + Y_1
         }
@@ -195,7 +195,7 @@ cazul_2 <- function (){
         }
         #Actualizam timpul mediu  petrecut la serverul 2
         infoServ[2,3] <<- infoServ[2,3] + Y_2
-        print(c("Y_2 generat la caz2:",Y_2))
+        #print(c("Y_2 generat la caz2:",Y_2))
         t_2 <<- t + Y_2
     }
     
@@ -203,7 +203,7 @@ cazul_2 <- function (){
         t_1 <<- Inf
     } else{
         Y_1 <<- generare_gamma(lambda)
-        print(c("Y_1 generat la caz2:",Y_1))
+        #print(c("Y_1 generat la caz2:",Y_1))
         t_1 <<- t + Y_1
         
         #Eliminam prima persoana din coada, deoarece este uramtoarea ce va fi servita,
@@ -231,7 +231,7 @@ cazul_2 <- function (){
     if(N_temp <= length(A_2))
         A_2[N_temp] <<- t
     else
-        print("N_temp > length (A_2)")
+        #print("N_temp > length (A_2)")
         A_2 <<- c(A_2, t)
 }
 
@@ -252,7 +252,7 @@ cazul_3 <- function() {
         t_2 <<- Inf
     }else {
         Y_2 <- generare_gamma(lambda)
-        print(c("Y_2 generat la caz3:",Y_2))
+        #print(c("Y_2 generat la caz3:",Y_2))
         t_2 <<- t + Y_2
         
         if(length(q2[, 1]) > 0){
@@ -332,7 +332,7 @@ resetare_variabile <- function(){
 # ------------------------------------------------------------------------------
 
 
-simulare_zi <- function(dummy = 1) {
+simulare_zi <- function(dummy = 1,n_sim, n_zi) {
     
     #De fiecare data cand apelam simulare_zi, ptc folosim variabile globale
     #Avem nevoie sa dam reset
@@ -341,10 +341,8 @@ simulare_zi <- function(dummy = 1) {
     #Consideram ca fiecare variabila de timp reprezinta numarul de secunde 
     #De la deschiderea centrului.
     #Astfel, este nevoie sa ne oprim atunci cand t depaseste N_prog * 3600 = 43200
-    
     while(TRUE){
-        #message(c("N_D: ",N_D))
-        print("-----------------------")
+       # print("-----------------------")
        
         
         
@@ -353,23 +351,22 @@ simulare_zi <- function(dummy = 1) {
         #2. Fie programul de primire s-a terminat si am reusit sa servim toti clientii
         if(t >= (N_prog + N_extra) * 3600 || 
            t >= N_prog * 3600 && n1 == 0 && n2 == 0){
-            #TODO:
             #   return metrics -> N_loss, length(A_2) numar doze,
-            print(c("Ramasi in n1", n1))
-            print(c("Ramasi in n2", n2))
-            print(c("t_A=",t_A))
-            print(c("t_1=",t_1))
-            print(c("t_2=",t_2))
-            print(c("Doze folosite=",N_D))
+            #print(c("Ramasi in n1", n1))
+            #print(c("Ramasi in n2", n2))
+            #print(c("t_A=",t_A))
+            #print(c("t_1=",t_1))
+            #print(c("t_2=",t_2))
+            #print(c("Doze folosite=",N_D))
             
             #Media timpului de astepare pentru cele 2 servere
             infoServ[1,3] <<- infoServ[1,3] / infoServ[1,5]
             infoServ[2,3] <<- infoServ[2,3] / infoServ[2,5]
-            
+            profit <<- N_doze - N_D
             break
         }
         if(t_A == min(t_A, t_1, t_2)){
-            print("Intra cazul 1")
+            #print("Intra cazul 1")
             #Primim clientii doar daca se indeplinesc simultan:
             #1. Timpul curent nu a depasit programul de munca
             #2. Coada serverului 2 nu este la capacitate maxima
@@ -383,20 +380,20 @@ simulare_zi <- function(dummy = 1) {
             }
         }
         else if(t_1 < t_A && t_1 <= t_2){
-            print("Intra cazul 2")
+            #print("Intra cazul 2")
             cazul_2()
         }
         else if(t_2 < t_A && t_2 < t_1){
-            print("Intra cazul 3")
+            #print("Intra cazul 3")
             cazul_3()
         }
         #Dat fiind t momentul de timp actual, eliminam din cele 2 cozi toti clientii
         #care si-au pierdut rabdarea
         len_q1_inainte <- length(q1[,1])
         len_q2_inainte <- length(q2[,1])
-        print("Before:Q1 and Q2:")
-        print(q1)
-        print(q2)
+        #print("Before:Q1 and Q2:")
+        #print(q1)
+        #print(q2)
         if(length(q1) > 0 ){
             if(infoServ[1,6] == 0){
                 q1_de_elim <- subset(q1, q1[, 1] + q1[, 2] <= t)
@@ -425,32 +422,53 @@ simulare_zi <- function(dummy = 1) {
         }
         n1 <<- n1 + length(q1[,1]) - len_q1_inainte
         n2 <<- n2 + length(q2[,1]) - len_q2_inainte  
-        print(c(length(q1[,1]), len_q1_inainte))
-        print(c(length(q2[,2]), len_q2_inainte))
-        print("After:Q1 and Q2:")
-        print(q1)
-        print(q2)
-        print(c("t_A=",t_A))
-        print(c("t_1=",t_1))
-        print(c("t_2=",t_2))
-        print(c("n1=",n1))
-        print(c("n2=",n2))
+        ##print(c(length(q1[,1]), len_q1_inainte))
+        #print(c(length(q2[,2]), len_q2_inainte))
+       #print("After:Q1 and Q2:")
+        #print(q1)
+        #print(q2)
+        #print(c("t_A=",t_A))
+        #print(c("t_1=",t_1))
+        #print(c("t_2=",t_2))
+        #print(c("n1=",n1))
+        #print(c("n2=",n2))
         
         #Numarul de clienti pierduti per fiecare sever este diferenta dintre lungimea dinainte
         #de eliminare si lungimea curenta
         if(len_q1_inainte > length(q1[,1])){
-            print("FATALITY:")
-            print(c(len_q1_inainte - length(q1[,1])))
-            print(infoServ[1,4])
+            #print("FATALITY:")
+            #print(c(len_q1_inainte - length(q1[,1])))
+            #print(infoServ[1,4])
             infoServ[1, 4] <<- infoServ[1, 4] + (len_q1_inainte - length(q1[,1]))
         }
         if(len_q2_inainte > length(q2[,1]))
             infoServ[2, 4] <<- infoServ[2, 4] + (len_q2_inainte - length(q2[,1]))
         
     }
-    print("Metrics:")
+    #print("Metrics:")
+    #Odata obtinute valorile pentru o simulare pentru o zi, acutalizam metricea
+    #agregatoare
+    #TODO: Minim global sau Minim mediu per 100 simulari?
     print(infoServ)
+    for (i in 0:1){
+        #Actualizarea timpului minim petrecut la serverul i din toate simularile
+        agregator[2 * n_zi - i, 1] <<- min(agregator[2 * n_zi - i, 1], infoServ[2 - i, 1])
+        #Actualizarea timpului maxim petrecut la serverul i din toate simularile
+        agregator[2 * n_zi - i,2] <<- max(agregator[2 * n_zi - i ,2], infoServ[2 - i,2])
+        #Actualizarea timpului mediu petrecut la serverul i din toate simularile
+        agregator[2 * n_zi - i,3] <<- (1 / n_sim) * infoServ[2 - i , 3] + agregator[2 * n_zi - i, 3]
+        #Actualizarea numarului mediu de clienti pierduti la serverul i
+        agregator[2 * n_zi - i,4] <<- (1 / n_sim) * infoServ[2 - i, 4] + agregator[2 * n_zi - i, 4]
+        #Actualizarea numarului mediu de clienti serviti la serverul i
+        agregator[2 * n_zi - i,5] <<- (1 / n_sim) * infoServ[2 - i, 5] + agregator[2 * n_zi - i, 5]
+        #Actualizarea numarului mediu de clienti serviti la serverul i
+        agregator[2 * n_zi - i,6] <<- (1 / n_sim) * infoServ[2 - i, 6] + agregator[2 * n_zi - i, 6]
+        
+    }
     print(c("We're closed. Fuck off.Last t:", t))
+    print(agregator)
+    print("-------------------------")
+    
 }
 #castig[3,1] 
 #Rulam simularea pentru 7 zile ->castig normal aka castig[1,1]
@@ -475,10 +493,27 @@ simulare_zi <- function(dummy = 1) {
 #}
 
 #-------------------------------------------------------------------------------
-simulare_zi()
+agregator <- matrix(nrow=2 * N_zile , ncol=6)
+
 main <- function(){
+    n <- 5
+    N_prog =1
+    saptamana <- c()
+    
+    for(i in 1:N_zile){
+        #Pentru fiecare zi rulam n simulari 
+        agregator[2 * i - 1, 2:6] <<- 0
+        agregator[2 * i, 2:6] <<- 0
+        agregator[2 * i - 1, 1] <<- Inf
+        agregator[2 * i, 1] <<- Inf
+        #print(rez_simulari)
+        sapply(1:n, simulare_zi, n_sim=n, n_zi=i)
+        print(c("Sfarist de simulare pentru ziua: ",i))
+        print(agregator)
+    }
     
 }
+main()
 # ------------------------------------------------------------------------------
 
 library(shiny)
