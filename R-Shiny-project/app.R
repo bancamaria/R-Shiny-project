@@ -32,8 +32,8 @@ A_1 <- c() # momentul sosirii clientului la serverul 1
 A_2 <- c() # momentul sosirii clientului la serverul 2
 D <- c() # momentul plecarii clientului din sistem
 
-q1 <- matrix(ncol=2)
-q2 <- matrix(ncol=2)
+q1 <- matrix(nrow=0,ncol=2)
+q2 <- matrix(nrow=0,ncol=2)
 
 # 1)CONSTANTE DE MEDIU
 #A_1[i] - t > rabdarea -> LEAVE
@@ -208,7 +208,7 @@ cazul_2 <- function (){
         
         #Eliminam prima persoana din coada, deoarece este uramtoarea ce va fi servita,
         #Daca exista perosoane in coada
-        if( length(q1[,1]) > 0){
+        if( nrow(q1) > 0){
             curent <- q1[1, ]
             q1 <<- q1[-1: -2, ]
             if( Y_1 + t - curent[1] < infoServ[1, 1]){
@@ -255,11 +255,13 @@ cazul_3 <- function() {
         #print(c("Y_2 generat la caz3:",Y_2))
         t_2 <<- t + Y_2
         
-        if(length(q2[, 1]) > 0){
+        if(nrow(q2) > 0){
             #Adaugam timpul petrecut de clientul din coada la timpii de aste
             curent <- q2[1, ]
             #Eliminam din coada clientul servit.
             q2 <<- q2[-1:-2,]
+            #q2 <<- q2[-1,]
+
             #Actualizam timpul minim, maxim  petrecut la serverul 2
             if( Y_2 + t - curent[1]< infoServ[2,1]){
                 infoServ[2,1] <<- Y_2 + t - curent[1]
@@ -301,9 +303,11 @@ resetare_variabile <- function(){
     N_A <<- 0
     N_D <<- 0
     
-    q1 <<- c()
-    q2 <<- c()
+    q1 <<- matrix(nrow=0,ncol=2)
+    q2 <<- matrix(nrow=0,ncol=2)
     
+    #Fiecare zi incepe cu 100 de doze
+    N_doze <<- 100 
     #Timp minim petrecut
     infoServ[1,1] <<- Inf
     infoServ[2,1] <<- Inf
@@ -362,7 +366,6 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
             #Media timpului de astepare pentru cele 2 servere
             infoServ[1,3] <<- infoServ[1,3] / infoServ[1,5]
             infoServ[2,3] <<- infoServ[2,3] / infoServ[2,5]
-            profit <<- N_doze - N_D
             break
         }
         if(t_A == min(t_A, t_1, t_2)){
@@ -389,17 +392,17 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
         }
         #Dat fiind t momentul de timp actual, eliminam din cele 2 cozi toti clientii
         #care si-au pierdut rabdarea
-        len_q1_inainte <- length(q1[,1])
-        len_q2_inainte <- length(q2[,1])
+        len_q1_inainte <- nrow(q1)
+        len_q2_inainte <- nrow(q2)
         #print("Before:Q1 and Q2:")
         #print(q1)
         #print(q2)
-        if(length(q1) > 0 ){
+        if(length(q1) >0 && nrow(q1) > 0 ){
             if(infoServ[1,6] == 0){
                 q1_de_elim <- subset(q1, q1[, 1] + q1[, 2] <= t)
                 q1 <<- subset(q1, q1[, 1] + q1[, 2] > t)
                 
-                if(length(q1_de_elim[,1]) > 0){
+                if(nrow(q1_de_elim) > 0){
                     infoServ[1,6] <<- q1_de_elim[1, 1] + q1_de_elim[1, 2]
                 }
             }else{
@@ -407,12 +410,12 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
             }
             
         }
-        if(length(q2) > 0){
+        if(nrow(q2) > 0){
             if(infoServ[2,6] == 0){
                 q2_de_elim <- subset(q2, q2[, 1] + q2[, 2] <= t)
                 q2 <<- subset(q2, q2[, 1] + q2[, 2] > t)
                 
-                if(length(q2_de_elim[,1]) > 0){
+                if(nrow(q2_de_elim) > 0){
                     infoServ[2,6] <<- q2_de_elim[1, 1] + q2_de_elim[1, 2]
                 }
             }else{
@@ -420,8 +423,8 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
             }
            
         }
-        n1 <<- n1 + length(q1[,1]) - len_q1_inainte
-        n2 <<- n2 + length(q2[,1]) - len_q2_inainte  
+        n1 <<- n1 + nrow(q1) - len_q1_inainte
+        n2 <<- n2 + nrow(q2) - len_q2_inainte  
         ##print(c(length(q1[,1]), len_q1_inainte))
         #print(c(length(q2[,2]), len_q2_inainte))
        #print("After:Q1 and Q2:")
@@ -435,14 +438,14 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
         
         #Numarul de clienti pierduti per fiecare sever este diferenta dintre lungimea dinainte
         #de eliminare si lungimea curenta
-        if(len_q1_inainte > length(q1[,1])){
+        if(len_q1_inainte > nrow(q1)){
             #print("FATALITY:")
-            #print(c(len_q1_inainte - length(q1[,1])))
+            #print(c(len_q1_inainte - nrow(q1[,1])))
             #print(infoServ[1,4])
-            infoServ[1, 4] <<- infoServ[1, 4] + (len_q1_inainte - length(q1[,1]))
+            infoServ[1, 4] <<- infoServ[1, 4] + (len_q1_inainte - nrow(q1))
         }
-        if(len_q2_inainte > length(q2[,1]))
-            infoServ[2, 4] <<- infoServ[2, 4] + (len_q2_inainte - length(q2[,1]))
+        if(len_q2_inainte > nrow(q2))
+            infoServ[2, 4] <<- infoServ[2, 4] + (len_q2_inainte - nrow(q2))
         
     }
     #print("Metrics:")
@@ -467,6 +470,10 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
     }
     print(c("We're closed. Fuck off.Last t:", t))
     print(agregator)
+    #Adunam la profitul mediu pentru aceasta zi, profitul obtinut pentru aceasta simulare
+    
+    profit <<- (1 / n_sim) * (N_doze - N_D) + profit
+    print(c("PROFIT:", profit))
     print("-------------------------")
     
 }
@@ -494,7 +501,7 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
 
 #-------------------------------------------------------------------------------
 agregator <- matrix(nrow=2 * N_zile , ncol=6)
-
+profit <- 0
 main <- function(){
     n <- 5
     N_prog =1
@@ -506,11 +513,17 @@ main <- function(){
         agregator[2 * i, 2:6] <<- 0
         agregator[2 * i - 1, 1] <<- Inf
         agregator[2 * i, 1] <<- Inf
-        #print(rez_simulari)
+        profit <<- 0 
         sapply(1:n, simulare_zi, n_sim=n, n_zi=i)
         print(c("Sfarist de simulare pentru ziua: ",i))
-        print(agregator)
+        #print(agregator)
     }
+    #Dupa finalizarea simularilor pentru N_zile, in agregator vom avea 
+    #Pe fiecare rand de indice 2 * i - 1 informatii de la serverul 1 pentru ziua i
+    #Pe fiecare rand de indice 2 * i  informatii de la serverul 2 pentru ziua i
+    print(agregator[seq(1,N_zile,2), 5])
+    plot(seq(1,N_zile), agregator[seq(1,2*N_zile,2), 5], col='red', xlab='Zilele Saptamanii',type='b')
+    lines(seq(1,N_zile), agregator[seq(2,2*N_zile,2), 5], col='blue', xlab='Zilele Saptamanii',type='b')
     
 }
 main()
