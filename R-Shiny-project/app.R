@@ -13,19 +13,73 @@
 
 library(R.utils)
 
+#FUNCTII PENTRU GENERAREA DE VARIABILE ALEATOARE CU DISTRIBUTIILE DATE
 lambda <- 0.01
-lambda_function <- function(t) {
-    if(0 <= t && t <= 6){
-        return( 0.01 * t^4 + 0.03 * t^3 + 0.05 * t^2 - 0.25 * t + 20) 
+#Generarea functiei de intensitate a procesului Poisson omogen de parametru t
+#Parametrul t va fi exprimat in secunde de la inceperea unei simulari, 
+#Prin urmare, imparti cu 3600 pentru a obtine ora respectiva 
+gen_intensitate <- function(t) {
+    h <-  t / 3600 
+    if(0 <= h && h <= 2){
+        return(23) 
+    }else if(2 < h && h <= 6){
+        return(15 * t ^ 2 + 3 * t -2)
     }
-    else{
-        return(15)
+    else if(6 < h && h <= 10){
+        return(3*ln(t) + 15 * t^2 + -1)
+    }
+    return(12)
+}
+
+#Generarea lui Y1, o v.a. discreta cu urmatoarea distributie
+#Valorile posibile ale lui Y1, sortate descrescator in functie de probabilitate
+Y1_val <- c(5, 7, 11, 12, 23, 24)
+Y1_prob <- c(20/60, 30/60, 2/60, 5/60, 2/60, 1/60)
+sum_prob <- cumsum(Y1_prob) 
+gen_y1 <- function(){
+    #Generam uniforma
+    u <-  runif(1,0,1)
+    return(Y1_val[which(u < sum_prob)][1])
+    
+}
+
+#Generarea unei variabile din distributia Exponentiala de parametru lambda
+gen_exp <- function(n, lambda){
+    U <- runif(n,0,1)
+    return( -1/lambda * log(U))
+}
+
+#Generarea lui Y2, conform densitatii de probabilitate :
+#f(x) = 2 /5 * x * exp((-1 * x ^2) / 25)
+#Estimat prin metoda respingerii 
+gen_y2 <- function(){
+    while(TRUE){
+        Y <- gen_exp(1,lambda = 1/5)
+        u <- runif(1,0,1)
+        if(u <=  1/5 * Y * exp((Y/5) * (1 - Y/5))){
+            return(Y)
+        }
     }
 }
 
-# ?????
-# posibil ca profa sa doreasca sa scriem noi functiile de repartitie
-
+#Generarea Constantelor de rabdare printr-o repartitie Binomiala cu size=100, p=0.2
+gen_binom <- function(size, p){
+    #Initializam
+    c <- p / (1-p)
+    i <- 0
+    prob <- (1-p) ^ size
+    f <- prob
+    while(TRUE){
+        #Generam u -> Unif(0,1)
+        u <- runif(1,0,1)
+        if(u <= f)
+            return(i)
+        prob <- c * (size - i ) / (i +1) * prob
+        f <-  f + prob 
+        i <- i + 1
+    }
+    
+}
 # VARIABILE DE OUTPUT
 
 A_1 <- c() # momentul sosirii clientului la serverul 1
@@ -84,7 +138,7 @@ generare_T_s <- function(s, lambda){
         t <- t - (1 / lambda) * log(U_1)
         
         # 4.
-        if(U_2 <= lambda_function(t)){
+        if(U_2 <= gen_intensitate(t) / lambda){
             T_s <- t
             break;
         }
@@ -132,13 +186,15 @@ cazul_1 <- function(){ # vede variabilele din afara
             n1 <<- n1 + 1
         }else{
             #Generam cu rbinom timpul lui de astptare
-            n_rabdare <- rbinom(1, 100, 0.2)
+            n_rabdare <- gen_binom(100, 0.2)
             q1 <<- rbind(q1, c(t, n_rabdare))
             n1 <<- n1 + 1 
         }
             
         if(n1 == 1){
-            Y_1 <- generare_gamma(lambda)
+            #Functiile de generare dupa datele primite genereaza valori mici
+            #In comparatie cu t. Ne vom asuma ca aceste valori sunt, de fapt, minute
+            Y_1 <- gen_y1() * 60
             if( Y_1 < infoServ[1,1]){
                 infoServ[1,1] <<- Y_1
             }else if(Y_1 > infoServ[1,2]){
@@ -177,14 +233,17 @@ cazul_2 <- function (){
         #Altfel, insamna ca exista un client care este servit in acest moment 
         #Deci il adaugam pe acest nou client in coada. 
         #Regeneram constanta de rabdare pentru clientul care acum va intra in serverul 2
-        n_rabdare <- rbinom(1,100,0.2)
+        n_rabdare <- gen_binom(100,0.2)
         #Introducem clientul in serverul2
         q2 <<- rbind(q2, c(t, n_rabdare))
         n2 <<- n2 + 1 
     }
     #Daca este singurul client la serverul 2, generam timpul de procesare al acestuia
     if(n2 == 1){
-        Y_2 <<- generare_gamma(lambda)
+        #Generarea variabilelor conform repartitiei date de f2(x) genereaza date prea mici
+        #in comparatie cu t, motiv pentru care ne asumam ca aceste valori ar fi, 
+        #de fapt, minute. Asadar, le vom converti in secunde
+        Y_2 <<- gen_y2() * 60 
         if( Y_2 < infoServ[2,1]){
             infoServ[2, 1] <<- Y_2
         }else if(Y_2 > infoServ[2,2]){
@@ -199,7 +258,7 @@ cazul_2 <- function (){
     if(n1 == 0){
         t_1 <<- Inf
     } else{
-        Y_1 <<- generare_gamma(lambda)
+        Y_1 <<- gen_y1() * 60
         #print(c("Y_1 generat la caz2:",Y_1))
         t_1 <<- t + Y_1
         
@@ -253,7 +312,7 @@ cazul_3 <- function() {
     if(n2 == 0) {
         t_2 <<- Inf
     }else {
-        Y_2 <- generare_gamma(lambda)
+        Y_2 <- gen_y2() * 60 
         #print(c("Y_2 generat la caz3:",Y_2))
         t_2 <<- t + Y_2
         
@@ -550,6 +609,7 @@ main <- function(){
     plot(seq(1:N_zile), profituri,type='b',col="green",xlab="Zi", ylab="Profit")
 }
 main()
+#simulare_zi(n_sim=1, n_zi=1)
 # ------------------------------------------------------------------------------
 
 library(shiny)
