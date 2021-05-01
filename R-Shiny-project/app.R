@@ -1,16 +1,15 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
 # n_0 = 100
 # a_0 = 20220
 # lambda = 0.01
 
+install.packages("R.utils")
+install.packages("R.oo")
+install.packages("methods")
+install.packages("base")
+install.packages("utils")
+install.packages("R.methodsS3")
+install.packages("shiny")
 library(R.utils)
 
 #FUNCTII PENTRU GENERAREA DE VARIABILE ALEATOARE CU DISTRIBUTIILE DATE
@@ -89,9 +88,11 @@ D <- c() # momentul plecarii clientului din sistem
 q1 <- matrix(nrow=0,ncol=2)
 q2 <- matrix(nrow=0,ncol=2)
 
+
 # 1)CONSTANTE DE MEDIU
+
 #A_1[i] - t > rabdarea -> LEAVE
-#Cum accesam i?
+
 N_prog <- 0.5 # numarul de ore in care centrul primeste clienti
 N_extra <- 0.5 # numarul de ore peste program  
 N_max2 <- 5 #numarul maxim de scaune in sala de asteptare la serverul 2.
@@ -100,9 +101,11 @@ N_dif <- 1 #numarul maxim de scaune libere care ar putea fi ocupate de clienti
             #serviti de la serverul 1 si cand serverul 2 este plin
 N_doze <- 100 #numarul de doze disponibile in fiecare zi. Profitul va reprezenta
 N_zile <- 31 #numarul de zile asupra caruia facem observarea
+
+
 # 2) INITIALIZARE
 
-t <- 0 # variaabila de timp t
+t <- 0 # variabila de timp t
 n1 <- 0 # nr de clienti de la serverul 1
 n2 <- 0 # nr de clienti de la serverul 2
 
@@ -113,15 +116,15 @@ N_D <- 0 # nr de plecari pana la momentul t
 N_loss <- 0 #nr de clienti care au parasit sistemul fara sa fie serviti
 infoServ <- matrix(nrow=2, ncol=6) #vector ce va retine informatiile generate in urma unei simulari 
 
-#infoServ[i,1] -> timpul minim de asteptare la serverul i DONE
-#infoServ[i,2] -> timpul maxim de asteptare la serverul i DONE
-#infoServ[i,3] -> timpul mediu de asteptare la serverul i DONE
-#infoServ[i,4] -> nr de clienti pierduti la serverul i DONE
-#infoServ[i,5] -> nr total de clienti serviti la serverul i DONE
-
+#infoServ[i,1] -> timpul minim de asteptare la serverul i 
+#infoServ[i,2] -> timpul maxim de asteptare la serverul i 
+#infoServ[i,3] -> timpul mediu de asteptare la serverul i 
+#infoServ[i,4] -> nr de clienti pierduti la serverul i 
+#infoServ[i,5] -> nr total de clienti serviti la serverul i 
 #infoServ[i,6] -> primul moment de timp la care se pierde un client la serverul i
 
-# Generare T_s
+
+# Algoritm de generare T_s
 generare_T_s <- function(s, lambda){
     
     T_s <- 0
@@ -154,7 +157,11 @@ t_A <<- T_0
 t_1 <<- Inf
 t_2 <<- Inf
 
+
+
 #-------------------------------------------------------------------------------
+
+
 
 # 2: CAZUL 1
 
@@ -171,13 +178,12 @@ cazul_1 <- function(){ # vede variabilele din afara
     T_t <<- generare_T_s(t, lambda)
     t_A <<- T_t
     
-    #Daca persoanele aflate in asteptare la serverul 2 ocupa un nr max de scaune
+    # Daca persoanele aflate in asteptare la serverul 2 ocupa un nr max de scaune
     # trebuie sa lasam libere scaune in caz ca serverul 1 serveste mai repede
     # ca sa nu riscam ca mai multi oameni care vin din serverul 1 la serverul 2
     # sa "ramana fara scaun"
     if(n1 >= N_max1 || (n1 > 1 && n2 >= N_max2 - N_dif)){
         #Daca totusi se intampla, pierdem
-        #ASK_COJO : Unde il punem?
         N_loss <- N_loss + 1
         
         
@@ -265,7 +271,7 @@ cazul_2 <- function (){
         #Eliminam prima persoana din coada, deoarece este uramtoarea ce va fi servita,
         #Daca exista perosoane in coada
         if( nrow(q1) > 0){
-            #print("pre Pop:")
+            #print("before Pop:")
             #print(q1)
             curent <- q1[1, ]
             q1 <<- q1[-1,,drop=FALSE]
@@ -286,7 +292,6 @@ cazul_2 <- function (){
     
     
     # Output cazul 2)
-    # Nobody cares
     N_temp <- N_A - n1
     A_2_temp <- A_2
     if(N_temp <= length(A_2))
@@ -317,7 +322,7 @@ cazul_3 <- function() {
         t_2 <<- t + Y_2
         
         if(nrow(q2) > 0){
-            #Adaugam timpul petrecut de clientul din coada la timpii de aste
+            #Adaugam timpul petrecut de clientul din coada la timpii de asteptare
             curent <- q2[1, ]
             #Eliminam din coada clientul servit.
             q2 <<- q2[-1,,drop=FALSE]
@@ -338,11 +343,16 @@ cazul_3 <- function() {
     }
     
     # Output cazul 3)
-    # Nobody cares
     D_temp <- D
     D <<- append(D_temp, t, after=N_D)
 }
+
+
+
 #-------------------------------------------------------------------------------
+
+
+
 resetare_variabile <- function(){
     #O noua zi, resetam masura de timp
     t <<- 0
@@ -394,7 +404,11 @@ resetare_variabile <- function(){
     infoServ[2,6] <<- 0
     
 }
+
+
+
 # ------------------------------------------------------------------------------
+
 
 
 simulare_zi <- function(dummy = 1,n_sim, n_zi) {
@@ -506,9 +520,7 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
         
     }
     #print("Metrics:")
-    #Odata obtinute valorile pentru o simulare pentru o zi, acutalizam metricea
-    #agregatoare
-    #TODO: Minim global sau Minim mediu per 100 simulari?
+    #Odata obtinute valorile pentru o simulare pentru o zi, acutalizam matricea agregatoare
     #print(infoServ)
     for (i in 0:1){
         #Actualizarea timpului minim petrecut la serverul i din toate simularile
@@ -525,7 +537,7 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
         agregator[2 * n_zi - i,6] <<- (1 / n_sim) * infoServ[2 - i, 6] + agregator[2 * n_zi - i, 6]
         
     }
-    #print(c("We're closed. Fuck off.Last t:", t))
+    #print(c("Program incheiat.Last t:", t))
     #print(agregator)
     #Adunam la profitul mediu pentru aceasta zi, profitul obtinut pentru aceasta simulare
     
@@ -556,7 +568,12 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
     #Cate un grafic per metrica. 
 #}
 
+
+
 #-------------------------------------------------------------------------------
+
+
+
 agregator <- matrix(nrow=2 * N_zile , ncol=6)
 profit <- 0
 profituri <- c()
