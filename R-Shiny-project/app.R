@@ -3,13 +3,6 @@
 # a_0 = 20220
 # lambda = 0.01
 
-install.packages("R.utils")
-install.packages("R.oo")
-install.packages("methods")
-install.packages("base")
-install.packages("utils")
-install.packages("R.methodsS3")
-install.packages("shiny")
 library(R.utils)
 
 #FUNCTII PENTRU GENERAREA DE VARIABILE ALEATOARE CU DISTRIBUTIILE DATE
@@ -25,7 +18,7 @@ gen_intensitate <- function(t) {
         return(15 * t ^ 2 + 3 * t -2)
     }
     else if(6 < h && h <= 10){
-        return(3*ln(t) + 15 * t^2 + -1)
+        return(3*log(t) + 15 * t^2 + -1)
     }
     return(12)
 }
@@ -88,20 +81,18 @@ D <- c() # momentul plecarii clientului din sistem
 q1 <- matrix(nrow=0,ncol=2)
 q2 <- matrix(nrow=0,ncol=2)
 
-
 # 1)CONSTANTE DE MEDIU
 
 #A_1[i] - t > rabdarea -> LEAVE
 
-N_prog <- 0.5 # numarul de ore in care centrul primeste clienti
+N_prog <- 12 # numarul de ore in care centrul primeste clienti
 N_extra <- 0.5 # numarul de ore peste program  
 N_max2 <- 5 #numarul maxim de scaune in sala de asteptare la serverul 2.
 N_max1 <- 4 #numarul maxim de scaune in sala de asteptare la serverul 1. Dimensiuna maxima a cozii 
 N_dif <- 1 #numarul maxim de scaune libere care ar putea fi ocupate de clienti
             #serviti de la serverul 1 si cand serverul 2 este plin
 N_doze <- 100 #numarul de doze disponibile in fiecare zi. Profitul va reprezenta
-N_zile <- 31 #numarul de zile asupra caruia facem observarea
-
+N_zile <- 7 #numarul de zile asupra caruia facem observarea
 
 # 2) INITIALIZARE
 
@@ -122,7 +113,6 @@ infoServ <- matrix(nrow=2, ncol=6) #vector ce va retine informatiile generate in
 #infoServ[i,4] -> nr de clienti pierduti la serverul i 
 #infoServ[i,5] -> nr total de clienti serviti la serverul i 
 #infoServ[i,6] -> primul moment de timp la care se pierde un client la serverul i
-
 
 # Algoritm de generare T_s
 generare_T_s <- function(s, lambda){
@@ -150,18 +140,13 @@ generare_T_s <- function(s, lambda){
     return(T_s)
 }
 
-
 #Generare initiala
 T_0 <- generare_T_s(0, lambda)
 t_A <<- T_0
 t_1 <<- Inf
 t_2 <<- Inf
 
-
-
 #-------------------------------------------------------------------------------
-
-
 
 # 2: CAZUL 1
 
@@ -185,7 +170,6 @@ cazul_1 <- function(){ # vede variabilele din afara
     if(n1 >= N_max1 || (n1 > 1 && n2 >= N_max2 - N_dif)){
         #Daca totusi se intampla, pierdem
         N_loss <- N_loss + 1
-        
         
     }else{
         if(n1 == 0){
@@ -216,8 +200,6 @@ cazul_1 <- function(){ # vede variabilele din afara
         A_1 <<-  c(A_1, t)
     }
 }
-
-
 
 # 3: CAZUL 2
 
@@ -289,8 +271,6 @@ cazul_2 <- function (){
         
     }
     
-    
-    
     # Output cazul 2)
     N_temp <- N_A - n1
     A_2_temp <- A_2
@@ -300,8 +280,6 @@ cazul_2 <- function (){
         #print("N_temp > length (A_2)")
         A_2 <<- c(A_2, t)
 }
-
-
 
 # 4: CAZUL 3
 
@@ -347,11 +325,7 @@ cazul_3 <- function() {
     D <<- append(D_temp, t, after=N_D)
 }
 
-
-
 #-------------------------------------------------------------------------------
-
-
 
 resetare_variabile <- function(){
     #O noua zi, resetam masura de timp
@@ -366,7 +340,6 @@ resetare_variabile <- function(){
     t_A <<- T_0
     t_1 <<- Inf
     t_2 <<- Inf
-    
     
     A_1 <<- c()
     A_2 <- c() 
@@ -405,11 +378,7 @@ resetare_variabile <- function(){
     
 }
 
-
-
 # ------------------------------------------------------------------------------
-
-
 
 simulare_zi <- function(dummy = 1,n_sim, n_zi) {
     
@@ -422,8 +391,6 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
     #Astfel, este nevoie sa ne oprim atunci cand t depaseste N_prog * 3600 = 43200
     while(TRUE){
        # print("-----------------------")
-       
-        
         
         #Centrul se va inchide daca una din cele 2 conditii este indeplinita:
         #1. Fie au trecut si numarul de ore extra pe care le-am alocat servirii
@@ -498,7 +465,7 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
         }
         n1 <<- n1 + nrow(q1) - len_q1_inainte
         n2 <<- n2 + nrow(q2) - len_q2_inainte  
-        ##print(c(length(q1[,1]), len_q1_inainte))
+        #print(c(length(q1[,1]), len_q1_inainte))
         #print(c(length(q2[,2]), len_q2_inainte))
         #print("After:Q1 and Q2:")
         #print(q1)
@@ -568,19 +535,18 @@ simulare_zi <- function(dummy = 1,n_sim, n_zi) {
     #Cate un grafic per metrica. 
 #}
 
-
-
 #-------------------------------------------------------------------------------
-
-
 
 agregator <- matrix(nrow=2 * N_zile , ncol=6)
 profit <- 0
 profituri <- c()
-main <- function(){
-    n <- 5
-    N_prog =1
+
+main <- function(offset_ore_de_lucru) { # offset-ul este un string = "-1", "0" si "1" corespunzator scurtarii/prelungirii programului de lucru cu clientii
+    n <- 100 # numarul de simulari pe zi
     saptamana <- c()
+    profit <<- 0
+    profituri <<- c()
+    agregator <<- matrix(nrow=2 * N_zile , ncol=6)
     
     for(i in 1:N_zile){
         #Pentru fiecare zi rulam n simulari 
@@ -598,19 +564,20 @@ main <- function(){
     #Pe fiecare rand de indice 2 * i - 1 informatii de la serverul 1 pentru ziua i
     #Pe fiecare rand de indice 2 * i  informatii de la serverul 2 pentru ziua i
     #par(mfrow=2, mfcol=2)
-    ylabs <-  c("Timp minim de asteptare",
-              "Timp maxim de asteptare",
-              "Timp mediu de astepare",
-              "Clienti pierduti",
-              "Clienti serviti",
-              "Primul Moment La care se pierde un client")
+    ylabs <-  c("Timp minim de asteptare", 
+                "Timp maxim de asteptare", 
+                "Timp mediu de astepare ", 
+                "Clienti pierduti", 
+                "Clienti serviti",
+                "Primul Moment La care se pierde un client")
     plot_grafic <- function(i){
         ymin <- min(agregator[, i])
         ymax <- max(agregator[, i])
         plot(seq(1,N_zile), agregator[seq(1,2*N_zile,2), i], col='red', xlab='Zilele Saptamanii',
              type='b',
              ylab=ylabs[i],
-             ylim = c(ymin, ymax))
+             ylim = c(ymin, ymax),
+             main = paste(ylabs[i], offset_ore_de_lucru, sep = " "))
         points(seq(1,N_zile), agregator[seq(2,2*N_zile,2), i], col='blue', xlab='Zilele Saptamanii')
         lines(seq(1,N_zile), agregator[seq(2,2*N_zile,2), i], col='blue', xlab='Zilele Saptamanii',lty=1)
         legend("topright",
@@ -623,49 +590,29 @@ main <- function(){
     sapply(1:6, plot_grafic)
     
     #Plotare profituri
-    plot(seq(1:N_zile), profituri,type='b',col="green",xlab="Zi", ylab="Profit")
-}
-main()
-#simulare_zi(n_sim=1, n_zi=1)
-# ------------------------------------------------------------------------------
-
-library(shiny)
-
-# Define UI for application that draws a histogram
-ui <- fluidPage(
-
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
-    )
-)
-
-# Define server logic required to draw a histogram
-server <- function(input, output) {
-
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
-    })
+    plot(seq(1:N_zile), profituri,type='b',col="green",xlab="Zi", ylab="Profit", main = paste("Profit", offset_ore_de_lucru, sep = " "))
+    
+    return (mean(profituri));
 }
 
-# Run the application 
-#shinyApp(ui = ui, server = server)
+analiza_3_simulari <- function() {
+    N_prog_initial <- N_prog
+    
+    N_prog <<- N_prog_initial - 1
+    medie_program_prescurtat <- main("-1")
+    print(paste("Numar de ore program de lucru: ", N_prog))
+    print(medie_program_prescurtat)
+
+    N_prog <<- N_prog_initial
+    medie_program_normal <- main("0")
+    print(paste("Numar de ore program de lucru: ", N_prog))
+    print(medie_program_normal)
+    
+    N_prog <<- N_prog_initial + 1
+    medie_program_prelungit <- main("+1")
+    print(paste("Numar de ore program de lucru: ", N_prog))
+    print(medie_program_prelungit)
+}
+
+analiza_3_simulari()
+
